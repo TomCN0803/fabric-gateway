@@ -1,4 +1,4 @@
-module github.com/TomCN0803/fabric-gateway
+module github.com/hyperledger/fabric-gateway
 
 go 1.16
 
