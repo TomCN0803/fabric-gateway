@@ -7,6 +7,8 @@ import (
 	math "github.com/IBM/mathlib"
 )
 
+var AttributeNames = []string{"OU", "Role", "EnrollmentID", "RevocationHandle"}
+
 // CSPWrapper wraps the idemix BCCSP implementation.
 type CSPWrapper struct {
 	csp schemes.BCCSP
@@ -22,6 +24,39 @@ func NewIdemixCSP() (*CSPWrapper, error) {
 	}
 
 	return &CSPWrapper{csp: csp}, nil
+}
+
+func (c *CSPWrapper) GetIssuerPK(issuerPKBytes []byte) (schemes.Key, error) {
+	issuerPK, err := c.csp.KeyImport(issuerPKBytes, &schemes.IdemixIssuerPublicKeyImportOpts{
+		Temporary:      true,
+		AttributeNames: AttributeNames,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return issuerPK, nil
+}
+
+func (c *CSPWrapper) GetUserSK(userSKBytes []byte) (schemes.Key, error) {
+	userSK, err := c.csp.KeyImport(userSKBytes, &schemes.IdemixUserSecretKeyImportOpts{Temporary: true})
+	if err != nil {
+		return nil, err
+	}
+
+	return userSK, nil
+}
+
+func (c *CSPWrapper) DerivUserNymKey(userSK, issuerPK schemes.Key) (schemes.Key, error) {
+	userNymSK, err := c.csp.KeyDeriv(userSK, &schemes.IdemixNymKeyDerivationOpts{
+		Temporary: true,
+		IssuerPK:  issuerPK,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return userNymSK, nil
 }
 
 func (c *CSPWrapper) NymSign(userSK, userNymSK, issuerPK schemes.Key, digest []byte) ([]byte, error) {
